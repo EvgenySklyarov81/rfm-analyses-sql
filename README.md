@@ -58,3 +58,55 @@ select case when length(card) = 13 then 'identified' else 'not_identified' end a
 > покупок не привязана к клиенту, что искажает аналитику и затрудняет 
 > работу с лояльностью. Стоит проверить работу кассового оборудования 
 > и процессы фиксации бонусных карт.
+## Как определяются ранги R, F, M
+
+Пороговые значения для Recency, Frequency и Monetary рассчитываются 
+как **33-й и 66-й процентили** каждого из рядов данных. Эти два значения 
+делят ряд на три интервала, каждому из которых соответствует одна из трёх 
+групп в RFM-анализе.
+
+Клиенты с наименьшим Recency (покупали недавно) получают ранг **1**, 
+с наибольшим — **3**. Аналогично для Frequency и Monetary: чем выше 
+показатель, тем лучше ранг.
+
+```sql
+with agg_data as(
+select card as user_id
+     , (select max(datetime)::date from bonuscheques) - max(datetime::date) as recency
+     , count(datetime) as frequency
+     , sum(summ_with_disc) as monetary
+  from bonuscheques
+ where length(card) = 13
+ group by card
+),
+percentiles as(
+select (percentile_cont(array[0.33, 0.66]) within group(order by recency))[1] as rec_perc_033
+     , (percentile_cont(array[0.33, 0.66]) within group(order by recency))[2] as rec_perc_066
+     , (percentile_cont(array[0.33, 0.66]) within group(order by frequency))[1] as freq_perc_033
+     , (percentile_cont(array[0.33, 0.66]) within group(order by frequency))[2] as freq_perc_066
+     , (percentile_cont(array[0.33, 0.66]) within group(order by monetary))[1] as monet_perc_033
+     , (percentile_cont(array[0.33, 0.66]) within group(order by monetary))[2] as monet_perc_066
+  from agg_data
+),
+rfm as(
+select user_id
+     , case when recency <= (select rec_perc_033 from percentiles) then '1'
+            when recency <= (select rec_perc_066 from percentiles) then '2'
+            else '3'
+            end as recency   
+     , case when frequency <= (select freq_perc_033 from percentiles) then '3'
+            when frequency <= (select freq_perc_066 from percentiles) then '2'
+            else '1'
+            end as frequency
+     , case when monetary <= (select monet_perc_033 from percentiles) then '3'
+            when monetary <= (select monet_perc_066 from percentiles) then '2'  
+            else '1'
+            end as monetary            
+  from agg_data
+)
+select recency || frequency || monetary as rfm_group
+     , count(*) as customers
+  from rfm
+ group by 1
+ order by rfm_group;
+```
