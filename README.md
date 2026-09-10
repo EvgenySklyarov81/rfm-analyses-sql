@@ -114,3 +114,5 @@ select recency || frequency || monetary as rfm_group
  group by 1
  order by rfm_group;
 ```
+
+📄 Файл с запросами: [`queries.sql`](queries.sql)
