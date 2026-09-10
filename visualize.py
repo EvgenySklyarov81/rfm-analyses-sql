@@ -1,5 +1,8 @@
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
+
+os.makedirs('images', exist_ok=True)
 
 df = pd.read_csv('data/rfm_result.csv')
 df = df.sort_values('rfm_group')
