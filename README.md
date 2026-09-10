@@ -118,6 +118,10 @@ select recency || frequency || monetary as rfm_group
 📄 Файл с запросами: [`queries.sql`](queries.sql)
 
 ## Результат запроса
+
+<details>
+<summary>Показать таблицу с результатами</summary>
+
 | rfm_group | customers |
 |-----------|---------- |
 |111|799|
@@ -147,6 +151,9 @@ select recency || frequency || monetary as rfm_group
 |331|98|
 |332|418|
 |333|794|
+
+</details>
+
 ## Визуализация
 ![Распределение клиентов по RFM-группам](images/rfm_distribution.png)
 
