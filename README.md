@@ -68,8 +68,9 @@ select case when length(card) = 13 then 'identified' else 'not_identified' end a
 Клиенты с наименьшим Recency (покупали недавно) получают ранг **1**, 
 с наибольшим — **3**. Аналогично для Frequency и Monetary: чем выше 
 показатель, тем лучше ранг.
-
+## Финальный запрос
 ```sql
+-- Шаг 1. Отсеиваем неидентифицированных покупателей и считаем для каждого оставшегося его показатели
 with agg_data as(
 select card as user_id
      , (select max(datetime)::date from bonuscheques) - max(datetime::date) as recency
@@ -79,6 +80,7 @@ select card as user_id
  where length(card) = 13
  group by card
 ),
+-- Шаг 2. Расчёт процентилей
 percentiles as(
 select (percentile_cont(array[0.33, 0.66]) within group(order by recency))[1] as rec_perc_033
      , (percentile_cont(array[0.33, 0.66]) within group(order by recency))[2] as rec_perc_066
@@ -88,6 +90,7 @@ select (percentile_cont(array[0.33, 0.66]) within group(order by recency))[1] as
      , (percentile_cont(array[0.33, 0.66]) within group(order by monetary))[2] as monet_perc_066
   from agg_data
 ),
+-- Шаг 3. Расчёт RFM группы покупателя
 rfm as(
 select user_id
      , case when recency <= (select rec_perc_033 from percentiles) then '1'
@@ -104,6 +107,7 @@ select user_id
             end as monetary            
   from agg_data
 )
+-- Шаг 4. Итоговая сводка по группам
 select recency || frequency || monetary as rfm_group
      , count(*) as customers
   from rfm
