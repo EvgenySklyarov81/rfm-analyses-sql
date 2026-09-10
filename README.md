@@ -147,3 +147,5 @@ select recency || frequency || monetary as rfm_group
 |331|98|
 |332|418|
 |333|794|
+## Визуализация
+![Распределение клиентов по RFM-группам](images/rfm_distribution.png)
